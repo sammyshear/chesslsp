@@ -17,3 +17,23 @@ type DidChangeTextDocumentNotification struct {
 type DidChangeTextDocumentParams struct {
 	Text string `json:"text"`
 }
+
+type CompletionRequest struct {
+	Request
+	Params CompletionParams
+}
+
+type CompletionParams struct {
+	TextDocumentPositionParams
+}
+
+type CompletionResponse struct {
+	Response
+	Result []CompletionItem `json:"result"`
+}
+
+type CompletionItem struct {
+	Label         string `json:"label"`
+	Detail        string `json:"detail"`
+	Documentation string `json:"documentation"`
+}

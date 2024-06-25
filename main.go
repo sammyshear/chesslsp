@@ -69,6 +69,14 @@ func handleMessage(w io.Writer, state analysis.State, method string, contents []
 				Diagnostics: diagnostics,
 			},
 		})
+	case "textDocument/completion":
+		var request lsp.CompletionRequest
+		if err := json.Unmarshal(contents, &request); err != nil {
+			return
+		}
+		response := state.TextDocumentCompletion(request.ID, request.Params.TextDocument.URI)
+
+		writeResponse(w, response)
 	}
 }
 
