@@ -24,11 +24,11 @@ func main() {
 			log.Printf("Error decoding message: %s", err)
 		}
 
-		handleMessage(w, state, method, contents)
+		handleMessage(w, &state, method, contents)
 	}
 }
 
-func handleMessage(w io.Writer, state analysis.State, method string, contents []byte) {
+func handleMessage(w io.Writer, state *analysis.State, method string, contents []byte) {
 	switch method {
 	case "initialize":
 		var request lsp.InitializeRequest
@@ -74,7 +74,7 @@ func handleMessage(w io.Writer, state analysis.State, method string, contents []
 		if err := json.Unmarshal(contents, &request); err != nil {
 			return
 		}
-		response := state.TextDocumentCompletion(request.ID, request.Params.TextDocument.URI)
+		response := state.TextDocumentCompletion(request.ID, request.Params.TextDocument.URI, request.Params.TextDocumentPositionParams.Position)
 
 		writeResponse(w, response)
 	}

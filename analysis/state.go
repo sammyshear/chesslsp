@@ -23,6 +23,16 @@ func NewState() State {
 	return State{Documents: map[string][]byte{}, DB: &pgn.DB{}}
 }
 
+func lastNode(n *pgn.Node) *pgn.Node {
+	var node *pgn.Node
+	for node = n; node != nil; node = node.Next {
+		if node.Next == nil {
+			break
+		}
+	}
+	return node
+}
+
 func (s *State) initLines(uri string) {
 	document := s.Documents[uri]
 	s.lineOnce.Do(func() {
@@ -164,15 +174,44 @@ func (s *State) UpdateDocument(uri string, contentChanges []lsp.TextDocumentChan
 	return getDiagnostics(string(s.Documents[uri]), s)
 }
 
-func (s *State) TextDocumentCompletion(id int, uri string) lsp.CompletionResponse {
+func (s *State) TextDocumentCompletion(id int, uri string, pos lsp.Position) lsp.CompletionResponse {
 	document := s.Documents[uri]
 	items := []lsp.CompletionItem{}
-	for row, line := range strings.Split(string(document), "\n") {
-		_ = row
-		_ = line
+	cursorOffset, err := positionOffset(pos, uri, s)
+	if err != nil {
+		panic(err)
+	}
+	documentUpToCursor := string(document[:cursorOffset])
+	documentUpToCursor = findLastValidMove(documentUpToCursor, s)
+	errs := s.DB.Parse(documentUpToCursor)
+	if errs != nil {
+		return lsp.CompletionResponse{
+			Response: lsp.Response{
+				RPC: "2.0",
+				ID:  id,
+			},
+			Result: []lsp.CompletionItem{},
+		}
+	}
+	err = s.DB.ParseMoves(s.DB.Games[len(s.DB.Games)-1])
+	if err != nil {
+		return lsp.CompletionResponse{
+			Response: lsp.Response{
+				RPC: "2.0",
+				ID:  id,
+			},
+			Result: []lsp.CompletionItem{},
+		}
+	}
+	ln := lastNode(s.DB.Games[len(s.DB.Games)-1].Root)
+	for _, move := range ln.Board.LegalMoves() {
+		items = append(items, lsp.CompletionItem{
+			Label:         move.San(ln.Board),
+			Detail:        move.Fan(ln.Board),
+			Documentation: "Suggested Legal Move",
+		})
 	}
 
-	_ = items
 	response := lsp.CompletionResponse{
 		Response: lsp.Response{
 			RPC: "2.0",
@@ -182,5 +221,21 @@ func (s *State) TextDocumentCompletion(id int, uri string) lsp.CompletionRespons
 	}
 
 	return response
+}
 
+func findLastValidMove(text string, s *State) string {
+	errs := s.DB.Parse(text)
+	if errs != nil {
+		panic(errs[0])
+	}
+	if len(s.DB.Games) > 0 {
+		if err := s.DB.ParseMoves(s.DB.Games[len(s.DB.Games)-1]); err != nil {
+			text = text[:len(text)-1]
+			return findLastValidMove(text, s)
+		}
+	} else {
+		text = text[:len(text)-1]
+		return findLastValidMove(text, s)
+	}
+	return text
 }
