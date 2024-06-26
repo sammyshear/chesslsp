@@ -15,7 +15,13 @@ type DidChangeTextDocumentNotification struct {
 }
 
 type DidChangeTextDocumentParams struct {
-	Text string `json:"text"`
+	TextDocument   VersionTextDoumentIdentifier `json:"textDocument"`
+	ContentChanges []TextDocumentChangeEvent    `json:"contentChanges"`
+}
+
+type TextDocumentChangeEvent struct {
+	Range Range  `json:"range"`
+	Text  string `json:"text"`
 }
 
 type CompletionRequest struct {

@@ -28,7 +28,7 @@ func NewInitializeResponse(id int) InitializeResponse {
 		},
 		Result: InitializeResult{
 			Capabilities: ServerCapabilities{
-				TextDocumentSync:   1,
+				TextDocumentSync:   2,
 				CompletionProvider: map[string]any{},
 			},
 			ServerInfo: ServerInfo{

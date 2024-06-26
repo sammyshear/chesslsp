@@ -54,11 +54,11 @@ func handleMessage(w io.Writer, state analysis.State, method string, contents []
 			},
 		})
 	case "textDocument/didChange":
-		var request lsp.DidOpenTextDocumentNotification
+		var request lsp.DidChangeTextDocumentNotification
 		if err := json.Unmarshal(contents, &request); err != nil {
 			return
 		}
-		diagnostics := state.UpdateDocument(request.Params.TextDocument.URI, request.Params.TextDocument.Text)
+		diagnostics := state.UpdateDocument(request.Params.TextDocument.URI, request.Params.ContentChanges)
 		writeResponse(w, lsp.PublishDiagnosticNotification{
 			Notification: lsp.Notification{
 				RPC:    "2.0",
